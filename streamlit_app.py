@@ -35,14 +35,14 @@ def get_google_sheets_service():
 
 
 @st.cache_data
-def get_sheet_list(service):
+def get_sheet_list(_service):
     """상담데이터 시트 목록만 조회합니다."""
-    if not service:
+    if not _service:
         return []
 
     try:
         spreadsheet = (
-            service.spreadsheets()
+            _service.spreadsheets()
             .get(spreadsheetId=st.secrets["SPREADSHEET_ID"])
             .execute()
         )
@@ -51,11 +51,10 @@ def get_sheet_list(service):
             title = sheet.get("properties", {}).get("title")
             if title and ("상담데이터" in title or "상담 데이터" in title):
                 sheets.append(title)
-        return sorted(sheets, reverse=True)  # 최신 날짜 순으로 정렬
+        return sorted(sheets, reverse=True)
     except Exception as e:
         st.error(f"시트 목록 조회 실패: {str(e)}")
         return []
-
 
 def parse_tags(tag_string):
     """태그 문자열을 파싱하여 개별 태그 리스트로 반환합니다."""
