@@ -48,8 +48,18 @@ pip install -r requirements.txt
 - spreadsheeet_id 정보가 저장된 `.env` 파일 다운로드
 
 
-## 📖 API 사용법
+## 🖥️ 사용법
 
-서버 실행 후 다음 주소에서 API 문서를 확인할 수 있습니다:
+### FastAPI 버전 (기존)
+```bash
+python run_server.py
+```
 - **API 문서**: http://localhost:8000/docs
 - **서버 주소**: http://localhost:8000
+
+### Streamlit 버전 (새로운 웹 인터페이스)
+```bash
+python run_streamlit.py
+```
+- **웹 앱**: http://localhost:8501
+- 직관적인 웹 인터페이스로 분석 결과 확인
