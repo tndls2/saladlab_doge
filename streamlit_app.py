@@ -302,18 +302,20 @@ def main():
 
                     with cols[i]:
                         with st.container():
+                            color = "#6c757d" if delta is None else (
+                                "#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d")
                             st.markdown(
                                 f"""
                                 <div style="
                                     background-color: #f0f2f6;
                                     padding: 0.5rem;
                                     border-radius: 0.3rem;
-                                    border-left: 3px solid #1f77b4;
+                                    border-left: 3px solid {color};
                                     margin-bottom: 0.5rem;
                                 ">
                                     <p style="margin: 0; font-size: 0.8rem; color: #666;">{sheet}</p>
                                     <p style="margin: 0.2rem 0 0 0; font-size: 1.2rem; font-weight: bold; color: #262730;">{current_total}개</p>
-                                    {f'<p style="margin: 0.1rem 0 0 0; font-size: 0.75rem; color: {"#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d"};">{delta:+d}개</p>' if delta is not None else '<p style="margin: 0.1rem 0 0 0; font-size: 0.75rem;">&nbsp;</p>'}
+                                    {f'<p style="margin: 0.1rem 0 0 0; font-size: 0.75rem; color: {color};">{delta:+d}개</p>' if delta is not None else '<p style="margin: 0.1rem 0 0 0; font-size: 0.75rem;">&nbsp;</p>'}
                                 </div>
                                 """,
                                 unsafe_allow_html=True,
@@ -365,18 +367,21 @@ def main():
 
                             with stats_cols[i]:
                                 with st.container():
+                                    color = "#6c757d" if delta is None else (
+                                        "#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d")
+
                                     st.markdown(
                                         f"""
                                         <div style="
                                             background-color: #f8f9fa;
                                             padding: 0.4rem;
                                             border-radius: 0.3rem;
-                                            border-left: 3px solid #6c757d;
+                                            border-left: 3px solid {color};
                                             margin-bottom: 0.3rem;
                                         ">
                                             <p style="margin: 0; font-size: 0.75rem; color: #666;">{sheet}</p>
                                             <p style="margin: 0.1rem 0 0 0; font-size: 1rem; font-weight: bold; color: #262730;">{current_count}개</p>
-                                            {f'<p style="margin: 0.1rem 0 0 0; font-size: 0.7rem; color: {"#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d"};">{delta:+d}개</p>' if delta is not None else '<p style="margin: 0.1rem 0 0 0; font-size: 0.7rem;">&nbsp;</p>'}
+                                            {f'<p style="margin: 0.1rem 0 0 0; font-size: 0.7rem; color: {color};">{delta:+d}개</p>' if delta is not None else '<p style="margin: 0.1rem 0 0 0; font-size: 0.7rem;">&nbsp;</p>'}
                                         </div>
                                         """,
                                         unsafe_allow_html=True,
