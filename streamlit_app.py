@@ -218,6 +218,26 @@ def create_chart(data, title):
     plt.tight_layout()
     return fig
 
+def highlight_top5_per_column(df):
+    def high_top5(s):
+        # 숫자 상위 5개 추출
+        top5 = s.nlargest(5).sort_values(ascending=False)
+        result = []
+        # 불투명도 단계 (큰 값일수록 진하게)
+        opacities = [0.9, 0.7, 0.5, 0.3, 0.1]
+        for v in s:
+            if v in top5.values:
+                # 순서에 맞는 불투명도 가져오기
+                idx = top5.values.tolist().index(v)
+                opacity = opacities[idx]
+                result.append(f'background-color: rgba(255, 255, 0, {opacity})')
+            else:
+                result.append('')
+        return result
+
+    # "태그" 열 제외하고 숫자 컬럼만 스타일 적용
+    numeric_cols = df.select_dtypes(include='number').columns
+    return df.style.apply(high_top5, subset=numeric_cols)
 
 # Streamlit 앱
 def main():
@@ -409,9 +429,9 @@ def main():
                         display_df = df_comparison.drop("변화량", axis=1).reset_index(
                             drop=True
                         )
-                        st.dataframe(
-                            display_df, use_container_width=True, hide_index=True
-                        )
+
+                        styled_df = highlight_top5_per_column(display_df)
+                        st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
     elif hasattr(st.session_state, "analyze") and st.session_state.analyze:
         with st.spinner("데이터를 분석 중입니다..."):
@@ -460,6 +480,8 @@ def main():
 
                         with col1:
                             # 테이블 표시 (대분류 제거)
+                            st.markdown(f"· 태그 종류: {len(data)}개  \n· 총 개수: {sum(data.values())}개")
+
                             clean_data = [
                                 (clean_tag_name(tag), count)
                                 for tag, count in data.items()
@@ -471,9 +493,6 @@ def main():
                             )
                             st.dataframe(
                                 df_category, use_container_width=True, hide_index=True
-                            )
-                            st.write(
-                                f"**태그 종류: {len(data)}개 | 총 개수: {sum(data.values())}개**"
                             )
 
                         with col2:
