@@ -1,11 +1,15 @@
-import os
+import streamlit as st
+st.set_page_config(
+        page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
+    )
 from collections import Counter
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import streamlit as st
+
+
 from dotenv import load_dotenv
-from google.oauth2.service_account import Credentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # 환경 설정
@@ -16,24 +20,22 @@ plt.rcParams["axes.unicode_minus"] = False
 # 상수
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-
 @st.cache_resource
 def get_google_sheets_service():
     """Google Sheets API 서비스 객체를 반환합니다."""
-    try:
-        creds = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"], scopes=SCOPES
-        )
-        return build("sheets", "v4", credentials=creds)
-    except KeyError:
-        st.error("st.secrets에 'gcp_service_account' 키가 없습니다.")
-        return None
+    info = st.secrets["google_service_account"]
+    service_account_info = dict(info)
+    service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
+    credentials = service_account.Credentials.from_service_account_info(service_account_info)
+    service = build('sheets', 'v4', credentials=credentials)
+    return service
 
 @st.cache_data
 def get_sheet_list():
     """상담데이터 시트 목록만 조회합니다."""
     service = get_google_sheets_service()
+
     if not service:
         return []
 
@@ -248,15 +250,11 @@ def highlight_top5_per_column(df):
 
 # Streamlit 앱
 def main():
-    st.set_page_config(
-        page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
-    )
-
     st.title("📊 Google Sheets 태그 분석기")
     st.markdown("---")
 
     # 환경 변수 확인
-    if not st.secrets["SPREADSHEET_ID"]:
+    if "SPREADSHEET_ID" not in st.secrets:
         st.error("SPREADSHEET_ID 환경변수가 설정되지 않았습니다.")
         return
 
