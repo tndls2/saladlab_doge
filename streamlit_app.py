@@ -1,13 +1,12 @@
 import streamlit as st
+
 st.set_page_config(
-        page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
-    )
+    page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
+)
 from collections import Counter
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
-
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -20,22 +19,24 @@ plt.rcParams["axes.unicode_minus"] = False
 # 상수
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
+
 @st.cache_resource
 def get_google_sheets_service():
-    """Google Sheets API 서비스 객체를 반환합니다."""
     info = st.secrets["google_service_account"]
     service_account_info = dict(info)
-    service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
-
-    credentials = service_account.Credentials.from_service_account_info(service_account_info)
-    service = build('sheets', 'v4', credentials=credentials)
+    service_account_info["private_key"] = service_account_info["private_key"].replace(
+        "\\n", "\n"
+    )
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info
+    )
+    service = build("sheets", "v4", credentials=credentials)
     return service
 
-@st.cache_data
-def get_sheet_list():
-    """상담데이터 시트 목록만 조회합니다."""
-    service = get_google_sheets_service()
 
+@st.cache_data
+def get_sheet_list(service):
+    """상담데이터 시트 목록만 조회합니다."""
     if not service:
         return []
 
@@ -253,19 +254,29 @@ def main():
     st.title("📊 Google Sheets 태그 분석기")
     st.markdown("---")
 
-    # 환경 변수 확인
-    if "SPREADSHEET_ID" not in st.secrets:
-        st.error("SPREADSHEET_ID 환경변수가 설정되지 않았습니다.")
-        return
+    service = None
+    sheets = []
 
+    if st.button("Load Sheets"):
+        try:
+            service = get_google_sheets_service()
+            st.success("Google Sheets API 연결 성공!")
+            sheets = get_sheet_list(service)  # service를 인자로 넘김
+        except Exception as e:
+            st.error(f"시트 로드 실패: {e}")
+            return
+
+    if not sheets:
+        st.warning("시트를 불러오려면 'Load Sheets' 버튼을 눌러주세요.")
+        return
     # 사이드바
     st.sidebar.header("설정")
 
     # 시트 목록 가져오기
-    sheets = get_sheet_list()
-    if not sheets:
-        st.error("시트 목록을 가져올 수 없습니다.")
-        return
+    # sheets = get_sheet_list()
+    # if not sheets:
+    #     st.error("시트 목록을 가져올 수 없습니다.")
+    #     return
 
     # 분석 모드 선택
     analysis_mode = st.sidebar.radio("분석 모드", ["단일 분석", "다중 비교"])
