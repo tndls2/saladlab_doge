@@ -15,18 +15,19 @@ plt.rcParams["axes.unicode_minus"] = False
 
 # 상수
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
 
 @st.cache_resource
 def get_google_sheets_service():
     """Google Sheets API 서비스 객체를 반환합니다."""
-    if not os.path.exists("token.json"):
-        st.error("token.json 파일을 찾을 수 없습니다.")
+    try:
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=SCOPES
+        )
+        return build("sheets", "v4", credentials=creds)
+    except KeyError:
+        st.error("st.secrets에 'gcp_service_account' 키가 없습니다.")
         return None
-
-    creds = Credentials.from_service_account_file("token.json", scopes=SCOPES)
-    return build("sheets", "v4", credentials=creds)
 
 
 @st.cache_data
@@ -37,7 +38,11 @@ def get_sheet_list():
         return []
 
     try:
-        spreadsheet = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        spreadsheet = (
+            service.spreadsheets()
+            .get(spreadsheetId=st.secrets["SPREADSHEET_ID"])
+            .execute()
+        )
         sheets = []
         for sheet in spreadsheet.get("sheets", []):
             title = sheet.get("properties", {}).get("title")
@@ -144,7 +149,7 @@ def load_sheet_data(sheet_name):
         result = (
             service.spreadsheets()
             .values()
-            .get(spreadsheetId=SPREADSHEET_ID, range=range_name)
+            .get(spreadsheetId=st.secrets["SPREADSHEET_ID"], range=range_name)
             .execute()
         )
 
@@ -218,6 +223,7 @@ def create_chart(data, title):
     plt.tight_layout()
     return fig
 
+
 def highlight_top5_per_column(df):
     def high_top5(s):
         # 숫자 상위 5개 추출
@@ -230,14 +236,15 @@ def highlight_top5_per_column(df):
                 # 순서에 맞는 불투명도 가져오기
                 idx = top5.values.tolist().index(v)
                 opacity = opacities[idx]
-                result.append(f'background-color: rgba(255, 255, 0, {opacity})')
+                result.append(f"background-color: rgba(255, 255, 0, {opacity})")
             else:
-                result.append('')
+                result.append("")
         return result
 
     # "태그" 열 제외하고 숫자 컬럼만 스타일 적용
-    numeric_cols = df.select_dtypes(include='number').columns
+    numeric_cols = df.select_dtypes(include="number").columns
     return df.style.apply(high_top5, subset=numeric_cols)
+
 
 # Streamlit 앱
 def main():
@@ -249,7 +256,7 @@ def main():
     st.markdown("---")
 
     # 환경 변수 확인
-    if not SPREADSHEET_ID:
+    if not st.secrets["SPREADSHEET_ID"]:
         st.error("SPREADSHEET_ID 환경변수가 설정되지 않았습니다.")
         return
 
@@ -322,8 +329,15 @@ def main():
 
                     with cols[i]:
                         with st.container():
-                            color = "#6c757d" if delta is None else (
-                                "#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d")
+                            color = (
+                                "#6c757d"
+                                if delta is None
+                                else (
+                                    "#28a745"
+                                    if delta > 0
+                                    else "#dc3545" if delta < 0 else "#6c757d"
+                                )
+                            )
                             st.markdown(
                                 f"""
                                 <div style="
@@ -387,8 +401,15 @@ def main():
 
                             with stats_cols[i]:
                                 with st.container():
-                                    color = "#6c757d" if delta is None else (
-                                        "#28a745" if delta > 0 else "#dc3545" if delta < 0 else "#6c757d")
+                                    color = (
+                                        "#6c757d"
+                                        if delta is None
+                                        else (
+                                            "#28a745"
+                                            if delta > 0
+                                            else "#dc3545" if delta < 0 else "#6c757d"
+                                        )
+                                    )
 
                                     st.markdown(
                                         f"""
@@ -431,7 +452,9 @@ def main():
                         )
 
                         styled_df = highlight_top5_per_column(display_df)
-                        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            styled_df, use_container_width=True, hide_index=True
+                        )
 
     elif hasattr(st.session_state, "analyze") and st.session_state.analyze:
         with st.spinner("데이터를 분석 중입니다..."):
@@ -480,7 +503,9 @@ def main():
 
                         with col1:
                             # 테이블 표시 (대분류 제거)
-                            st.markdown(f"· 태그 종류: {len(data)}개  \n· 총 개수: {sum(data.values())}개")
+                            st.markdown(
+                                f"· 태그 종류: {len(data)}개  \n· 총 개수: {sum(data.values())}개"
+                            )
 
                             clean_data = [
                                 (clean_tag_name(tag), count)
