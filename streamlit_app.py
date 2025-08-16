@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
+    page_title="샐러드랩 상담데이터 분석", page_icon="🥗", layout="wide"
 )
 import platform
 from collections import Counter
@@ -310,7 +310,7 @@ def highlight_top5_per_column(df):
 
 # Streamlit 앱
 def main():
-    st.title("📊 Google Sheets 태그 분석기")
+    st.title("🥗 샐러드랩 상담데이터 분석")
     st.markdown("---")
 
     # 자동으로 시트 로드
@@ -546,6 +546,7 @@ def main():
                     st.metric("총 상담 수", sum(tag_counts.values()))
 
                 # 카테고리별 분석
+                st.markdown("---")
                 st.subheader("📊 카테고리별 분석")
 
                 categories = [
@@ -568,7 +569,11 @@ def main():
                 for key, title in categories:
                     data = category_counts.get(key, {})
                     if data:
-                        st.write(f"### {title}")
+                        # 전체 상담태그는 큰 제목, 중분류는 작은 제목
+                        if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
+                            st.write(f"#### {title}")  # 큰 제목
+                        else:
+                            st.write(f"#### - {title}")  # 작은 제목
 
                         col1, col2 = st.columns([1, 2])
 
