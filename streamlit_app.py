@@ -13,7 +13,16 @@ from googleapiclient.discovery import build
 
 # 환경 설정
 load_dotenv()
-plt.rcParams["font.family"] = "AppleGothic"
+
+# 한글 폰트 설정 (Streamlit Cloud 환경 고려)
+try:
+    plt.rcParams["font.family"] = "NanumGothic"
+except:
+    try:
+        plt.rcParams["font.family"] = "AppleGothic"
+    except:
+        plt.rcParams["font.family"] = "DejaVu Sans"
+        
 plt.rcParams["axes.unicode_minus"] = False
 
 # 상수
@@ -253,29 +262,21 @@ def main():
     st.title("📊 Google Sheets 태그 분석기")
     st.markdown("---")
 
-    service = None
-    sheets = []
-
-    if st.button("Load Sheets"):
-        try:
-            service = get_google_sheets_service()
-            st.success("Google Sheets API 연결 성공!")
-            sheets = get_sheet_list(service)  # service를 인자로 넘김
-        except Exception as e:
-            st.error(f"시트 로드 실패: {e}")
+    # 자동으로 시트 로드
+    try:
+        service = get_google_sheets_service()
+        sheets = get_sheet_list(service)
+        if sheets:
+            st.success(f"✅ {len(sheets)}개 시트를 불러왔습니다!")
+        else:
+            st.warning("상담데이터 시트를 찾을 수 없습니다.")
             return
-
-    if not sheets:
-        st.warning("시트를 불러오려면 'Load Sheets' 버튼을 눌러주세요.")
+    except Exception as e:
+        st.error(f"❌ 시트 로드 실패: {e}")
+        st.info("💡 Google Sheets API 연결을 확인해주세요.")
         return
     # 사이드바
     st.sidebar.header("설정")
-
-    # 시트 목록 가져오기
-    # sheets = get_sheet_list()
-    # if not sheets:
-    #     st.error("시트 목록을 가져올 수 없습니다.")
-    #     return
 
     # 분석 모드 선택
     analysis_mode = st.sidebar.radio("분석 모드", ["단일 분석", "다중 비교"])
