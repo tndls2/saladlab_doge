@@ -14,23 +14,34 @@ from googleapiclient.discovery import build
 # 환경 설정
 load_dotenv()
 
-# 한글 폰트 설정 (Streamlit Cloud 환경 고려)
+# 한글 폰트 설정 (Streamlit Cloud 환경)
 import matplotlib.font_manager as fm
+import platform
 
-# 사용 가능한 폰트 확인 후 설정
-available_fonts = [f.name for f in fm.fontManager.ttflist]
-korean_fonts = ['NanumGothic', 'Nanum Gothic', 'AppleGothic', 'Malgun Gothic', 'DejaVu Sans']
+# 폰트 캐시 재빌드
+fm._rebuild()
 
-font_found = False
-for font in korean_fonts:
-    if font in available_fonts:
-        plt.rcParams["font.family"] = font
-        font_found = True
-        break
+# 시스템별 폰트 설정
+if platform.system() == 'Linux':  # Streamlit Cloud
+    # Linux 환경에서 사용 가능한 폰트들
+    linux_fonts = ['DejaVu Sans', 'Liberation Sans', 'FreeSans']
+    for font in linux_fonts:
+        try:
+            plt.rcParams["font.family"] = font
+            break
+        except:
+            continue
+else:
+    # 로컬 환경
+    korean_fonts = ['NanumGothic', 'AppleGothic', 'Malgun Gothic']
+    available_fonts = [f.name for f in fm.fontManager.ttflist]
+    for font in korean_fonts:
+        if font in available_fonts:
+            plt.rcParams["font.family"] = font
+            break
+    else:
+        plt.rcParams["font.family"] = "DejaVu Sans"
 
-if not font_found:
-    plt.rcParams["font.family"] = "sans-serif"
-    
 plt.rcParams["axes.unicode_minus"] = False
 
 # 상수
@@ -216,15 +227,26 @@ def create_chart(data, title):
         return None
 
     fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # 폰트 설정 강제 적용
+    import platform
+    if platform.system() == 'Linux':
+        # Linux에서는 영어로 대체
+        ax.set_xlabel("Tags", fontsize=10)
+        ax.set_ylabel("Count", fontsize=10)
+        chart_title = title.replace("리뷰", "Review").replace("업셀", "Upsell").replace("푸시", "Push").replace("상담태그", "Tags")
+        ax.set_title(chart_title, fontsize=12)
+    else:
+        ax.set_xlabel("태그", fontsize=10)
+        ax.set_ylabel("개수", fontsize=10)
+        ax.set_title(title, fontsize=12)
+    
     # 개수 기준으로 내림차순 정렬
     sorted_items = sorted(data.items(), key=lambda x: x[1], reverse=True)
     clean_tags = [clean_tag_name(tag) for tag, count in sorted_items]
     counts = [count for tag, count in sorted_items]
 
     bars = ax.bar(range(len(clean_tags)), counts)
-    ax.set_xlabel("태그", fontsize=10)
-    ax.set_ylabel("개수", fontsize=10)
-    ax.set_title(title, fontsize=12)
     ax.set_xticks(range(len(clean_tags)))
     ax.set_xticklabels(clean_tags, rotation=45, ha="right", fontsize=8)
 
