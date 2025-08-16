@@ -3,8 +3,10 @@ import streamlit as st
 st.set_page_config(
     page_title="Google Sheets 태그 분석기", page_icon="📊", layout="wide"
 )
+import platform
 from collections import Counter
 
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import pandas as pd
 from dotenv import load_dotenv
@@ -14,20 +16,46 @@ from googleapiclient.discovery import build
 # 환경 설정
 load_dotenv()
 
-# 한글 폰트 설정
-import platform
 
-# 시스템별 폰트 설정
-if platform.system() == 'Linux':  # Streamlit Cloud
-    plt.rcParams["font.family"] = "DejaVu Sans"
-else:
-    # 로컬 환경
+# 한글 폰트 설정 함수
+def setup_korean_font():
     try:
-        plt.rcParams["font.family"] = "AppleGothic"
-    except:
-        plt.rcParams["font.family"] = "DejaVu Sans"
+        # 시스템별 한글 폰트 설정
+        if platform.system() == "Darwin":  # macOS
+            font_candidates = ["AppleGothic", "Apple SD Gothic Neo", "Noto Sans CJK KR"]
+        elif platform.system() == "Windows":
+            font_candidates = ["Malgun Gothic", "Microsoft YaHei", "Noto Sans CJK KR"]
+        else:  # Linux (including Streamlit Cloud)
+            font_candidates = ["NanumGothic", "Noto Sans CJK KR", "DejaVu Sans"]
 
-plt.rcParams["axes.unicode_minus"] = False
+        # 사용 가능한 폰트 찾기
+        available_fonts = [f.name for f in fm.fontManager.ttflist]
+
+        for font in font_candidates:
+            if font in available_fonts:
+                plt.rcParams["font.family"] = font
+                plt.rcParams["axes.unicode_minus"] = False
+                return font
+
+        # 한글 폰트를 찾지 못한 경우 기본 설정
+        plt.rcParams["font.family"] = "DejaVu Sans"
+        plt.rcParams["axes.unicode_minus"] = False
+        return "DejaVu Sans"
+
+    except Exception as e:
+        plt.rcParams["font.family"] = "DejaVu Sans"
+        plt.rcParams["axes.unicode_minus"] = False
+        return "DejaVu Sans"
+
+
+# 폰트 설정 적용
+used_font = setup_korean_font()
+if "font_info_shown" not in st.session_state:
+    st.session_state.font_info_shown = True
+    if used_font != "DejaVu Sans":
+        st.success(f"✅ 한글 폰트 '{used_font}' 설정 완료")
+    else:
+        st.warning("⚠️ 한글 폰트를 찾을 수 없어 기본 폰트를 사용합니다.")
 
 # 상수
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -68,6 +96,7 @@ def get_sheet_list(_service):
     except Exception as e:
         st.error(f"시트 목록 조회 실패: {str(e)}")
         return []
+
 
 def parse_tags(tag_string):
     """태그 문자열을 파싱하여 개별 태그 리스트로 반환합니다."""
@@ -212,20 +241,12 @@ def create_chart(data, title):
         return None
 
     fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # 폰트 설정 강제 적용
-    import platform
-    if platform.system() == 'Linux':
-        # Linux에서는 영어로 대체
-        ax.set_xlabel("Tags", fontsize=10)
-        ax.set_ylabel("Count", fontsize=10)
-        chart_title = title.replace("리뷰", "Review").replace("업셀", "Upsell").replace("푸시", "Push").replace("상담태그", "Tags")
-        ax.set_title(chart_title, fontsize=12)
-    else:
-        ax.set_xlabel("태그", fontsize=10)
-        ax.set_ylabel("개수", fontsize=10)
-        ax.set_title(title, fontsize=12)
-    
+
+    # 한글 레이블 설정
+    ax.set_xlabel("태그", fontsize=10)
+    ax.set_ylabel("개수", fontsize=10)
+    ax.set_title(title, fontsize=12)
+
     # 개수 기준으로 내림차순 정렬
     sorted_items = sorted(data.items(), key=lambda x: x[1], reverse=True)
     clean_tags = [clean_tag_name(tag) for tag, count in sorted_items]
