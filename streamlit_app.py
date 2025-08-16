@@ -420,6 +420,8 @@ def main():
                                 unsafe_allow_html=True,
                             )
 
+                st.markdown("---")
+
                 # 카테고리별 비교
                 categories = [
                     ("리뷰_상담태그", "리뷰 전체 상담태그"),
@@ -450,7 +452,11 @@ def main():
                             all_tags.update(data.keys())
 
                     if all_tags:
-                        st.write(f"### {title} 비교")
+                        # 중분류 상담태그는 앞에 - 추가
+                        if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
+                            st.write(f"### {title} 비교")
+                        else:
+                            st.write(f"### - {title} 비교")
 
                         # 각 시트별 통계 표시
                         stats_cols = st.columns(len(st.session_state.selected_sheets))
