@@ -15,14 +15,22 @@ from googleapiclient.discovery import build
 load_dotenv()
 
 # 한글 폰트 설정 (Streamlit Cloud 환경 고려)
-try:
-    plt.rcParams["font.family"] = "NanumGothic"
-except:
-    try:
-        plt.rcParams["font.family"] = "AppleGothic"
-    except:
-        plt.rcParams["font.family"] = "DejaVu Sans"
-        
+import matplotlib.font_manager as fm
+
+# 사용 가능한 폰트 확인 후 설정
+available_fonts = [f.name for f in fm.fontManager.ttflist]
+korean_fonts = ['NanumGothic', 'Nanum Gothic', 'AppleGothic', 'Malgun Gothic', 'DejaVu Sans']
+
+font_found = False
+for font in korean_fonts:
+    if font in available_fonts:
+        plt.rcParams["font.family"] = font
+        font_found = True
+        break
+
+if not font_found:
+    plt.rcParams["font.family"] = "sans-serif"
+    
 plt.rcParams["axes.unicode_minus"] = False
 
 # 상수
