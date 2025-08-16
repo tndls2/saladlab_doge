@@ -14,32 +14,17 @@ from googleapiclient.discovery import build
 # 환경 설정
 load_dotenv()
 
-# 한글 폰트 설정 (Streamlit Cloud 환경)
-import matplotlib.font_manager as fm
+# 한글 폰트 설정
 import platform
-
-# 폰트 캐시 재빌드
-fm._rebuild()
 
 # 시스템별 폰트 설정
 if platform.system() == 'Linux':  # Streamlit Cloud
-    # Linux 환경에서 사용 가능한 폰트들
-    linux_fonts = ['DejaVu Sans', 'Liberation Sans', 'FreeSans']
-    for font in linux_fonts:
-        try:
-            plt.rcParams["font.family"] = font
-            break
-        except:
-            continue
+    plt.rcParams["font.family"] = "DejaVu Sans"
 else:
     # 로컬 환경
-    korean_fonts = ['NanumGothic', 'AppleGothic', 'Malgun Gothic']
-    available_fonts = [f.name for f in fm.fontManager.ttflist]
-    for font in korean_fonts:
-        if font in available_fonts:
-            plt.rcParams["font.family"] = font
-            break
-    else:
+    try:
+        plt.rcParams["font.family"] = "AppleGothic"
+    except:
         plt.rcParams["font.family"] = "DejaVu Sans"
 
 plt.rcParams["axes.unicode_minus"] = False
