@@ -65,7 +65,6 @@ python run_streamlit.py
 
 ### 주요 차트 유형
 - **막대 차트**: 전체 상담태그 (리뷰_상담태그, 업셀_상담태그, 푸시_상담태그)
-- **도넛 차트**: 중분류 상담태그 (요청사항, 도입문의, 기능문의)
 - **비교 테이블**: 다중 시트 분석 시 변화량과 상위 태그 하이라이트
 
 ## 📈 데이터 구조
@@ -91,7 +90,7 @@ python run_streamlit.py
 ```
 MIT License
 
-Copyright (c) 2024 샐러드랩
+Copyright (c) 2025 Suin Park
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -111,18 +110,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
-## 🤝 기여하기
-
-프로젝트 개선을 위한 제안이나 버그 리포트는 언제든 환영합니다!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-**개발팀**: 샐러드랩 데이터 분석팀  
-**문의**: 프로젝트 관련 문의사항이 있으시면 언제든 연락주세요!
