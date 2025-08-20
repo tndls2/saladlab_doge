@@ -504,7 +504,13 @@ def main():
 
                         comparison_data = []
                         for tag in all_tags:
-                            row = {"태그": clean_tag_name(tag)}
+                            # 대분류 전체 태그는 대분류만 제거, 나머지는 기존 clean_tag_name 사용
+                            if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
+                                clean_tag = "/".join(tag.split("/")[1:])  # 대분류만 제거
+                            else:
+                                clean_tag = clean_tag_name(tag)
+                            
+                            row = {"태그": clean_tag}
                             counts = []
                             for sheet in st.session_state.selected_sheets:
                                 count = category_data.get(sheet, {}).get(tag, 0)
