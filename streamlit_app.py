@@ -1,8 +1,6 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="샐러드랩 상담데이터 분석", page_icon="🥗", layout="wide"
-)
+st.set_page_config(page_title="샐러드랩 상담데이터 분석", page_icon="🥗", layout="wide")
 import platform
 from collections import Counter
 
@@ -154,36 +152,45 @@ def categorize_tags_advanced(tag_counts):
             # 모든 리뷰 태그를 리뷰_상담태그에 추가
             categories["리뷰_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류
+            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
             if is_request:
                 categories["리뷰_요청사항_상담태그"][tag] = count
-            if is_intro:
+            elif is_intro:
                 categories["리뷰_도입문의_상담태그"][tag] = count
-            if is_function:
+            elif is_function:
                 categories["리뷰_기능문의_상담태그"][tag] = count
+            else:
+                # 중분류가 명확하지 않은 태그들을 요청사항으로 분류
+                categories["리뷰_요청사항_상담태그"][tag] = count
 
         elif first_category == "업셀":
             # 모든 업셀 태그를 업셀_상담태그에 추가
             categories["업셀_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류
+            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
             if is_request:
                 categories["업셀_요청사항_상담태그"][tag] = count
-            if is_intro:
+            elif is_intro:
                 categories["업셀_도입문의_상담태그"][tag] = count
-            if is_function:
+            elif is_function:
                 categories["업셀_기능문의_상담태그"][tag] = count
+            else:
+                # 중분류가 명확하지 않은 태그들을 도입문의로 분류
+                categories["업셀_도입문의_상담태그"][tag] = count
 
         elif first_category == "푸시":
             # 모든 푸시 태그를 푸시_상담태그에 추가
             categories["푸시_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류
+            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
             if is_request:
                 categories["푸시_요청사항_상담태그"][tag] = count
-            if is_intro:
+            elif is_intro:
                 categories["푸시_도입문의_상담태그"][tag] = count
-            if is_function:
+            elif is_function:
+                categories["푸시_기능문의_상담태그"][tag] = count
+            else:
+                # 중분류가 명확하지 않은 태그들을 기능문의로 분류
                 categories["푸시_기능문의_상담태그"][tag] = count
 
         else:
@@ -282,6 +289,77 @@ def create_chart(data, title):
             fontsize=9,
         )
 
+    plt.tight_layout()
+    return fig
+
+
+def create_trend_chart(comparison_data, title, key):
+    """다중 비교용 선 그래프를 생성합니다."""
+    if not comparison_data:
+        return None
+
+    df = pd.DataFrame(comparison_data)
+
+    # 시트 이름들 (월)
+    sheet_columns = [col for col in df.columns if col not in ["태그", "변화량"]]
+
+    # 리뷰 전체 태그의 경우 유의미한 태그만 필터링
+    if key == "리뷰_상담태그":
+        df["max_value"] = df[sheet_columns].max(axis=1)
+        df = df[df["max_value"] >= 3].drop("max_value", axis=1)
+
+    # 마지막 시트의 값 기준으로 정렬
+    last_sheet = sheet_columns[-1]
+    df = df.sort_values(last_sheet, ascending=False).head(15)
+
+    if len(df) == 0:
+        return None
+
+    # 그래프 크기 축소
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # 파란색 계열 음영 색상
+    blue_shades = [
+        "#E6F3FF",  # 매우 밝은 파란
+        "#B3D9FF",  # 밝은 파란
+        "#80BFFF",  # 연한 파란
+        "#4DA6FF",  # 보통 파란
+        "#1A8CFF",  # 진한 파란
+        "#0066CC",  # 더 진한 파란
+        "#004499",  # 매우 진한 파란
+        "#002266",  # 가장 진한 파란
+    ]
+
+    if len(sheet_columns) <= len(blue_shades):
+        # 시트 수에 맞게 색상 선택
+        colors = blue_shades[: len(sheet_columns)]
+    else:
+        # 시트가 많을 때는 비례적으로 색상 생성
+        colors = [
+            blue_shades[int(i * (len(blue_shades) - 1) / (len(sheet_columns) - 1))]
+            for i in range(len(sheet_columns))
+        ]
+
+    for i, sheet in enumerate(sheet_columns):
+        values = df[sheet].values
+        ax.plot(
+            df["태그"],
+            values,
+            marker="o",
+            linewidth=2.5,
+            label=sheet,
+            color=colors[i],
+            markersize=6,
+        )
+
+    ax.set_xlabel("태그", fontsize=9)
+    ax.set_ylabel("월별 개수", fontsize=9)
+    ax.set_title(f"{title} - 태그별 월별 추이", fontsize=10)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    plt.xticks(rotation=90, ha="right", fontsize=7)
+    plt.yticks(fontsize=8)
     plt.tight_layout()
     return fig
 
@@ -505,11 +583,17 @@ def main():
                         comparison_data = []
                         for tag in all_tags:
                             # 대분류 전체 태그는 대분류만 제거, 나머지는 기존 clean_tag_name 사용
-                            if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
-                                clean_tag = "/".join(tag.split("/")[1:])  # 대분류만 제거
+                            if key in [
+                                "리뷰_상담태그",
+                                "업셀_상담태그",
+                                "푸시_상담태그",
+                            ]:
+                                clean_tag = "/".join(
+                                    tag.split("/")[1:]
+                                )  # 대분류만 제거
                             else:
                                 clean_tag = clean_tag_name(tag)
-                            
+
                             row = {"태그": clean_tag}
                             counts = []
                             for sheet in st.session_state.selected_sheets:
@@ -535,6 +619,12 @@ def main():
                         st.dataframe(
                             styled_df, use_container_width=True, hide_index=True
                         )
+
+                        # 추이 그래프 생성 (표 아래에 표시)
+                        trend_fig = create_trend_chart(comparison_data, title, key)
+                        if trend_fig:
+                            st.pyplot(trend_fig)
+                            plt.close(trend_fig)
 
     elif hasattr(st.session_state, "analyze") and st.session_state.analyze:
         with st.spinner("데이터를 분석 중입니다..."):
