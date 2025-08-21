@@ -386,10 +386,14 @@ def highlight_top5_per_column(df):
     return df.style.apply(high_top5, subset=numeric_cols)
 
 
+
+
 # Streamlit 앱
 def main():
     st.title("🥗 샐러드랩 상담데이터 분석")
     st.markdown("---")
+    
+
 
     # 자동으로 시트 로드
     try:
@@ -717,8 +721,26 @@ def main():
                                 .sort_values("개수", ascending=False)
                                 .reset_index(drop=True)
                             )
+                            
+                            # Top 3 하이라이트 적용
+                            def highlight_top3(df):
+                                def highlight_top3_rows(s):
+                                    top3 = s.nlargest(3).sort_values(ascending=False)
+                                    result = []
+                                    opacities = [0.8, 0.5, 0.3]
+                                    for v in s:
+                                        if v in top3.values and v > 0:
+                                            idx = top3.values.tolist().index(v)
+                                            opacity = opacities[idx]
+                                            result.append(f"background-color: rgba(255, 255, 0, {opacity})")
+                                        else:
+                                            result.append("")
+                                    return result
+                                return df.style.apply(highlight_top3_rows, subset=["개수"])
+                            
+                            styled_df = highlight_top3(df_category)
                             st.dataframe(
-                                df_category, use_container_width=True, hide_index=True
+                                styled_df, use_container_width=True, hide_index=True
                             )
 
                         with col2:
@@ -743,8 +765,14 @@ def main():
                 other_data = category_counts.get("기타", {})
                 if other_data:
                     st.write("### 기타 태그")
+                    
+                    # 통계 정보를 표 위에 표시
+                    st.markdown(
+                        f"· 태그 종류: {len(other_data)}개  \n· 총 개수: {sum(other_data.values())}개"
+                    )
+                    
                     clean_other_data = [
-                        (clean_tag_name(tag), count)
+                        (tag, count)  # 기타 태그는 원본 태그 이름 유지
                         for tag, count in other_data.items()
                     ]
                     df_other = (
@@ -752,10 +780,25 @@ def main():
                         .sort_values("개수", ascending=False)
                         .reset_index(drop=True)
                     )
-                    st.dataframe(df_other, use_container_width=True, hide_index=True)
-                    st.write(
-                        f"**태그 종류: {len(other_data)}개 | 총 개수: {sum(other_data.values())}개**"
-                    )
+                    
+                    # Top 3 하이라이트 적용
+                    def highlight_top3(df):
+                        def highlight_top3_rows(s):
+                            top3 = s.nlargest(3).sort_values(ascending=False)
+                            result = []
+                            opacities = [0.8, 0.5, 0.3]
+                            for v in s:
+                                if v in top3.values and v > 0:
+                                    idx = top3.values.tolist().index(v)
+                                    opacity = opacities[idx]
+                                    result.append(f"background-color: rgba(255, 255, 0, {opacity})")
+                                else:
+                                    result.append("")
+                            return result
+                        return df.style.apply(highlight_top3_rows, subset=["개수"])
+                    
+                    styled_df_other = highlight_top3(df_other)
+                    st.dataframe(styled_df_other, use_container_width=True, hide_index=True)
 
     else:
         st.info("👈 사이드바에서 분석 모드를 선택하고 버튼을 클릭하세요.")
