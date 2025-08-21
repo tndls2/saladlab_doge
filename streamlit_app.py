@@ -462,12 +462,16 @@ def main():
                 cols = st.columns(len(sheet_data))
                 sheet_list = list(tag_counts_all.items())
                 for i, (sheet, tag_counts) in enumerate(sheet_list):
-                    current_total = sum(tag_counts.values())
+                    # ID 열이 있는 행 수로 상담 수 계산
+                    sheet_df = sheet_data[sheet]
+                    current_total = len(sheet_df[sheet_df['id'].notna() & (sheet_df['id'] != '')])
 
                     # 전월 대비 변화량 계산
                     delta = None
                     if i > 0:
-                        prev_total = sum(sheet_list[i - 1][1].values())
+                        prev_sheet = sheet_list[i - 1][0]
+                        prev_df = sheet_data[prev_sheet]
+                        prev_total = len(prev_df[prev_df['id'].notna() & (prev_df['id'] != '')])
                         delta = current_total - prev_total
 
                     with cols[i]:
@@ -642,10 +646,14 @@ def main():
                 # 전체 태그 통계
                 st.subheader("📈 전체 태그 통계")
                 col1, col2, col3 = st.columns(3)
+                
+                # ID 열이 있는 행 수 계산 (실제 상담 수)
+                total_consultations = len(df[df['id'].notna() & (df['id'] != '')])
+                
                 with col1:
                     st.metric("총 태그 종류", len(tag_counts))
                 with col2:
-                    st.metric("총 상담 수", sum(tag_counts.values()))
+                    st.metric("총 상담 수", total_consultations)
 
                 # 카테고리별 분석
                 st.markdown("---")
