@@ -103,11 +103,72 @@ def analyze_tags(df, tag_column="tags"):
         st.error(f"'{tag_column}' 열을 찾을 수 없습니다.")
         return {}
 
-    all_tags = []
+    tag_counts = Counter()
     for tag_string in df[tag_column]:
-        all_tags.extend(parse_tags(tag_string))
+        unique_tags = set(parse_tags(tag_string))
+        for tag in unique_tags:
+            tag_counts[tag] += 1
 
-    return dict(Counter(all_tags))
+    return dict(tag_counts)
+
+
+def analyze_company_stats(df, tag_column="tags", company_column="name"):
+    """대분류별 업체 수를 계산합니다."""
+    if tag_column not in df.columns or company_column not in df.columns:
+        st.warning(f"컴럼을 찾을 수 없습니다: {tag_column}, {company_column}")
+        st.write(f"사용 가능한 컴럼: {list(df.columns)}")
+        return {"review": 0, "upsell": 0, "push": 0, "review_upsell": 0}
+
+    # 대분류별 업체 집합 (중복 제거)
+    review_companies = set()
+    upsell_companies = set()
+    push_companies = set()
+    review_upsell_companies = set()
+    upsell_push_companies = set()
+    push_review_companies = set()
+
+    for idx, row in df.iterrows():
+        if pd.isna(row[company_column]) or row[company_column] == "":
+            continue
+
+        company = str(row[company_column]).strip()
+        tags = parse_tags(row[tag_column])
+
+        is_review = False
+        is_upsell = False
+        is_push = False
+
+        for tag in tags:
+            if tag.startswith("리뷰"):
+                is_review = True
+            elif tag.startswith("업셀"):
+                is_upsell = True
+            elif tag.startswith("푸시"):
+                is_push = True
+
+        if is_review:
+            review_companies.add(company)
+        if is_upsell:
+            upsell_companies.add(company)
+        if is_push:
+            push_companies.add(company)
+
+        # 서로 다른 서비스의 태그가 모두 있는 경우
+        if is_review and is_upsell:
+            review_upsell_companies.add(company)
+        if is_upsell and is_push:
+            upsell_push_companies.add(company)
+        if is_push and is_review:
+            push_review_companies.add(company)
+
+    return {
+        "review": len(review_companies),
+        "upsell": len(upsell_companies),
+        "push": len(push_companies),
+        "review_upsell": len(review_upsell_companies),
+        "upsell_push": len(upsell_push_companies),
+        "push_review": len(push_review_companies),
+    }
 
 
 def categorize_tags_advanced(tag_counts):
@@ -386,14 +447,10 @@ def highlight_top5_per_column(df):
     return df.style.apply(high_top5, subset=numeric_cols)
 
 
-
-
 # Streamlit 앱
 def main():
     st.title("🥗 샐러드랩 상담데이터 분석")
     st.markdown("---")
-    
-
 
     # 자동으로 시트 로드
     try:
@@ -448,6 +505,7 @@ def main():
             sheet_data = {}
             tag_counts_all = {}
             category_counts_all = {}
+            company_stats_all = {}
 
             for sheet in st.session_state.selected_sheets:
                 df = load_sheet_data(sheet)
@@ -457,6 +515,7 @@ def main():
                     category_counts_all[sheet] = categorize_tags_advanced(
                         tag_counts_all[sheet]
                     )
+                    company_stats_all[sheet] = analyze_company_stats(df)
 
             if len(sheet_data) >= 2:
                 pass
@@ -468,14 +527,18 @@ def main():
                 for i, (sheet, tag_counts) in enumerate(sheet_list):
                     # ID 열이 있는 행 수로 상담 수 계산
                     sheet_df = sheet_data[sheet]
-                    current_total = len(sheet_df[sheet_df['id'].notna() & (sheet_df['id'] != '')])
+                    current_total = len(
+                        sheet_df[sheet_df["id"].notna() & (sheet_df["id"] != "")]
+                    )
 
                     # 전월 대비 변화량 계산
                     delta = None
                     if i > 0:
                         prev_sheet = sheet_list[i - 1][0]
                         prev_df = sheet_data[prev_sheet]
-                        prev_total = len(prev_df[prev_df['id'].notna() & (prev_df['id'] != '')])
+                        prev_total = len(
+                            prev_df[prev_df["id"].notna() & (prev_df["id"] != "")]
+                        )
                         delta = current_total - prev_total
 
                     with cols[i]:
@@ -506,9 +569,61 @@ def main():
                                 unsafe_allow_html=True,
                             )
 
+                # 업체 통계 비교
+                st.markdown("#### 상담 인입 업체 수 (중복 제거)")
+
+                # 표 데이터 준비
+                categories = [
+                    "review",
+                    "upsell",
+                    "push",
+                    "review_upsell",
+                    "upsell_push",
+                    "push_review",
+                ]
+                category_names = {
+                    "review": "리뷰",
+                    "upsell": "업셀",
+                    "push": "푸시",
+                    "review_upsell": "리뷰&업셀",
+                    "upsell_push": "업셀&푸시",
+                    "push_review": "푸시&리뷰",
+                }
+
+                # 각 카테고리별로 데이터 준비
+                company_table_data = {}
+                for category in categories:
+                    category_values = []
+                    for i, sheet in enumerate(st.session_state.selected_sheets):
+                        current_stats = company_stats_all[sheet]
+                        current_count = current_stats[category]
+
+                        # 증감률 계산
+                        change_text = ""
+                        if i > 0:
+                            prev_sheet = st.session_state.selected_sheets[i - 1]
+                            prev_stats = company_stats_all[prev_sheet]
+                            prev_count = prev_stats[category]
+                            if prev_count > 0:
+                                change_rate = (
+                                    (current_count - prev_count) / prev_count
+                                ) * 100
+                                if change_rate != 0:
+                                    change_text = f" ({change_rate:+.1f}%)"
+
+                        category_values.append(f"{current_count}개{change_text}")
+
+                    company_table_data[category_names[category]] = category_values
+
+                # 표 생성
+                company_df = pd.DataFrame(
+                    company_table_data, index=st.session_state.selected_sheets
+                )
+                st.dataframe(company_df, use_container_width=True)
+
                 st.markdown("---")
 
-                # 카테고리별 비교
+                # 태그 카테고리별 비교
                 categories = [
                     ("리뷰_상담태그", "리뷰 전체 상담태그"),
                     ("리뷰_요청사항_상담태그", "리뷰 요청사항 상담태그"),
@@ -648,20 +763,36 @@ def main():
                 category_counts = categorize_tags_advanced(tag_counts)
 
                 # 전체 태그 통계
-                st.subheader("📈 전체 태그 통계")
+                st.subheader("📈 전체 분석")
                 col1, col2, col3 = st.columns(3)
-                
+
                 # ID 열이 있는 행 수 계산 (실제 상담 수)
-                total_consultations = len(df[df['id'].notna() & (df['id'] != '')])
-                
+                total_consultations = len(df[df["id"].notna() & (df["id"] != "")])
+
                 with col1:
                     st.metric("총 태그 종류", len(tag_counts))
                 with col2:
                     st.metric("총 상담 수", total_consultations)
 
+                # 대분류별 업체 통계 표
+                company_stats = analyze_company_stats(df)
+                st.markdown("#### 상담 인입 업체 수 (중복 제거)")
+
+                stats_data = {
+                    "리뷰": [f"{company_stats['review']}개"],
+                    "업셀": [f"{company_stats['upsell']}개"],
+                    "푸시": [f"{company_stats['push']}개"],
+                    "리뷰&업셀": [f"{company_stats['review_upsell']}개"],
+                    "업셀&푸시": [f"{company_stats['upsell_push']}개"],
+                    "푸시&리뷰": [f"{company_stats['push_review']}개"],
+                }
+
+                stats_df = pd.DataFrame(stats_data, index=["업체 수"])
+                st.dataframe(stats_df, use_container_width=True)
+
                 # 카테고리별 분석
                 st.markdown("---")
-                st.subheader("📊 카테고리별 분석")
+                st.subheader("📊 서비스별 분석")
 
                 categories = [
                     ("리뷰_상담태그", "리뷰 전체 상담태그"),
@@ -721,7 +852,7 @@ def main():
                                 .sort_values("개수", ascending=False)
                                 .reset_index(drop=True)
                             )
-                            
+
                             # Top 3 하이라이트 적용
                             def highlight_top3(df):
                                 def highlight_top3_rows(s):
@@ -732,12 +863,17 @@ def main():
                                         if v in top3.values and v > 0:
                                             idx = top3.values.tolist().index(v)
                                             opacity = opacities[idx]
-                                            result.append(f"background-color: rgba(255, 255, 0, {opacity})")
+                                            result.append(
+                                                f"background-color: rgba(255, 255, 0, {opacity})"
+                                            )
                                         else:
                                             result.append("")
                                     return result
-                                return df.style.apply(highlight_top3_rows, subset=["개수"])
-                            
+
+                                return df.style.apply(
+                                    highlight_top3_rows, subset=["개수"]
+                                )
+
                             styled_df = highlight_top3(df_category)
                             st.dataframe(
                                 styled_df, use_container_width=True, hide_index=True
@@ -747,6 +883,16 @@ def main():
                             # 차트 표시
                             chart_data = data
                             if key == "리뷰_상담태그":
+                                # 상위 50개만 차트에 표시
+                                chart_data = dict(
+                                    sorted(
+                                        data.items(),
+                                        key=lambda x: int(x[1]),
+                                        reverse=True,
+                                    )[:50]
+                                )
+                            elif key == "리뷰_요청사항_상담태그":
+                                # 상위 50개만 차트에 표시
                                 chart_data = dict(
                                     sorted(
                                         data.items(),
@@ -765,12 +911,12 @@ def main():
                 other_data = category_counts.get("기타", {})
                 if other_data:
                     st.write("### 기타 태그")
-                    
+
                     # 통계 정보를 표 위에 표시
                     st.markdown(
                         f"· 태그 종류: {len(other_data)}개  \n· 총 개수: {sum(other_data.values())}개"
                     )
-                    
+
                     clean_other_data = [
                         (tag, count)  # 기타 태그는 원본 태그 이름 유지
                         for tag, count in other_data.items()
@@ -780,7 +926,7 @@ def main():
                         .sort_values("개수", ascending=False)
                         .reset_index(drop=True)
                     )
-                    
+
                     # Top 3 하이라이트 적용
                     def highlight_top3(df):
                         def highlight_top3_rows(s):
@@ -791,14 +937,19 @@ def main():
                                 if v in top3.values and v > 0:
                                     idx = top3.values.tolist().index(v)
                                     opacity = opacities[idx]
-                                    result.append(f"background-color: rgba(255, 255, 0, {opacity})")
+                                    result.append(
+                                        f"background-color: rgba(255, 255, 0, {opacity})"
+                                    )
                                 else:
                                     result.append("")
                             return result
+
                         return df.style.apply(highlight_top3_rows, subset=["개수"])
-                    
+
                     styled_df_other = highlight_top3(df_other)
-                    st.dataframe(styled_df_other, use_container_width=True, hide_index=True)
+                    st.dataframe(
+                        styled_df_other, use_container_width=True, hide_index=True
+                    )
 
     else:
         st.info("👈 사이드바에서 분석 모드를 선택하고 버튼을 클릭하세요.")
