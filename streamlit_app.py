@@ -364,10 +364,13 @@ def create_trend_chart(comparison_data, title, key):
     # 시트 이름들 (월)
     sheet_columns = [col for col in df.columns if col not in ["태그", "변화량"]]
 
-    # 리뷰 전체 태그의 경우 유의미한 태그만 필터링
+    # 리뷰 전체 태그와 리뷰 요청사항 태그의 경우 유의미한 태그만 필터링
     if key == "리뷰_상담태그":
         df["max_value"] = df[sheet_columns].max(axis=1)
-        df = df[df["max_value"] >= 3].drop("max_value", axis=1)
+        df = df[df["max_value"] >= 5].drop("max_value", axis=1)
+    elif key == "리뷰_요청사항_상담태그":
+        df["max_value"] = df[sheet_columns].max(axis=1)
+        df = df[df["max_value"] >= 5].drop("max_value", axis=1)
 
     # 마지막 시트의 값 기준으로 정렬
     last_sheet = sheet_columns[-1]
