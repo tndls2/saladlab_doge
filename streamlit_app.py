@@ -565,7 +565,7 @@ def main():
                             )
 
                 # 업체 통계 비교
-                st.markdown("#### 상담 인입 업체 수 (중복 제거)")
+                st.markdown("#### 상담 인입 업체 수")
 
                 # 표 데이터 준비
                 categories = [
@@ -773,7 +773,7 @@ def main():
 
                 # 대분류별 업체 통계 표
                 company_stats = analyze_company_stats(df)
-                st.markdown("#### 상담 인입 업체 수 (중복 제거)")
+                st.markdown("#### 상담 인입 업체 수")
 
                 stats_data = {
                     "리뷰": [f"{company_stats['review']}개"],
@@ -853,24 +853,19 @@ def main():
 
                             # Top 3 하이라이트 적용
                             def highlight_top3(df):
-                                def highlight_top3_rows(s):
-                                    top3 = s.nlargest(3).sort_values(ascending=False)
-                                    result = []
-                                    opacities = [0.8, 0.5, 0.3]
-                                    for v in s:
-                                        if v in top3.values and v > 0:
-                                            idx = top3.values.tolist().index(v)
-                                            opacity = opacities[idx]
-                                            result.append(
-                                                f"background-color: rgba(255, 255, 0, {opacity})"
-                                            )
-                                        else:
-                                            result.append("")
-                                    return result
+                                top3_idx = df["개수"].nlargest(3).index
+                                opacities = [0.8, 0.5, 0.3]
 
-                                return df.style.apply(
-                                    highlight_top3_rows, subset=["개수"]
-                                )
+                                def highlight_top3_rows(row):
+                                    if row.name in top3_idx:
+                                        rank = list(top3_idx).index(row.name)
+                                        opacity = opacities[rank]
+                                        return [f"background-color: rgba(255, 255, 0, {opacity})"] * len(row)
+                                    else:
+                                        # 반드시 컬럼 개수만큼 리스트 반환해야 함
+                                        return [""] * len(row)
+
+                                return df.style.apply(highlight_top3_rows, axis=1)
 
                             styled_df = highlight_top3(df_category)
                             st.dataframe(
