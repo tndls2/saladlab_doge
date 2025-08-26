@@ -126,6 +126,7 @@ def analyze_company_stats(df, tag_column="tags", company_column="name"):
     review_upsell_companies = set()
     upsell_push_companies = set()
     push_review_companies = set()
+    review_upsell_push_companies = set()
 
     for idx, row in df.iterrows():
         if pd.isna(row[company_column]) or row[company_column] == "":
@@ -160,6 +161,8 @@ def analyze_company_stats(df, tag_column="tags", company_column="name"):
             upsell_push_companies.add(company)
         if is_push and is_review:
             push_review_companies.add(company)
+        if is_review and is_upsell and is_push:
+            review_upsell_push_companies.add(company)
 
     return {
         "review": len(review_companies),
@@ -168,6 +171,7 @@ def analyze_company_stats(df, tag_column="tags", company_column="name"):
         "review_upsell": len(review_upsell_companies),
         "upsell_push": len(upsell_push_companies),
         "push_review": len(push_review_companies),
+        "review_upsell_push": len(review_upsell_push_companies),
     }
 
 
@@ -209,49 +213,37 @@ def categorize_tags_advanced(tag_counts):
         is_request = "요청사항" in second_category
         is_function = second_category == "기능문의" or third_category == "기능문의"
 
-        if first_category == "리뷰":
-            # 모든 리뷰 태그를 리뷰_상담태그에 추가
+        if first_category in ["리뷰", "리뷰목록"]:
             categories["리뷰_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
+            # 중분류에 따라 추가 분류
             if is_request:
                 categories["리뷰_요청사항_상담태그"][tag] = count
             elif is_intro:
                 categories["리뷰_도입문의_상담태그"][tag] = count
             elif is_function:
                 categories["리뷰_기능문의_상담태그"][tag] = count
-            else:
-                # 중분류가 명확하지 않은 태그들을 요청사항으로 분류
-                categories["리뷰_요청사항_상담태그"][tag] = count
 
         elif first_category == "업셀":
-            # 모든 업셀 태그를 업셀_상담태그에 추가
             categories["업셀_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
+            # 중분류에 따라 추가 분류
             if is_request:
                 categories["업셀_요청사항_상담태그"][tag] = count
             elif is_intro:
                 categories["업셀_도입문의_상담태그"][tag] = count
             elif is_function:
                 categories["업셀_기능문의_상담태그"][tag] = count
-            else:
-                # 중분류가 명확하지 않은 태그들을 도입문의로 분류
-                categories["업셀_도입문의_상담태그"][tag] = count
 
         elif first_category == "푸시":
-            # 모든 푸시 태그를 푸시_상담태그에 추가
             categories["푸시_상담태그"][tag] = count
 
-            # 중분류에 따라 추가 분류 (조건을 만족하지 않는 태그도 포함)
+            # 중분류에 따라 추가 분류
             if is_request:
                 categories["푸시_요청사항_상담태그"][tag] = count
             elif is_intro:
                 categories["푸시_도입문의_상담태그"][tag] = count
             elif is_function:
-                categories["푸시_기능문의_상담태그"][tag] = count
-            else:
-                # 중분류가 명확하지 않은 태그들을 기능문의로 분류
                 categories["푸시_기능문의_상담태그"][tag] = count
 
         else:
@@ -583,6 +575,7 @@ def main():
                     "review_upsell",
                     "upsell_push",
                     "push_review",
+                    "review_upsell_push",
                 ]
                 category_names = {
                     "review": "리뷰",
@@ -591,6 +584,7 @@ def main():
                     "review_upsell": "리뷰&업셀",
                     "upsell_push": "업셀&푸시",
                     "push_review": "푸시&리뷰",
+                    "review_upsell_push": "리뷰&업셀&푸시",
                 }
 
                 # 각 카테고리별로 데이터 준비
@@ -788,6 +782,7 @@ def main():
                     "리뷰&업셀": [f"{company_stats['review_upsell']}개"],
                     "업셀&푸시": [f"{company_stats['upsell_push']}개"],
                     "푸시&리뷰": [f"{company_stats['push_review']}개"],
+                    "리뷰&업셀&푸시": [f"{company_stats['review_upsell_push']}개"],
                 }
 
                 stats_df = pd.DataFrame(stats_data, index=["업체 수"])
