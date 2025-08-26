@@ -650,11 +650,24 @@ def main():
                             all_tags.update(data.keys())
 
                     if all_tags:
-                        # 중분류 상담태그는 앞에 - 추가
                         if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
-                            st.write(f"### {title} 비교")
+                            # key별 색 매핑
+                            color_map = {
+                                "리뷰_상담태그": "#fff3cd",  # 연한 노랑
+                                "업셀_상담태그": "#d4edda",  # 연한 초록
+                                "푸시_상담태그": "#d1ecf1",  # 연한 하늘색
+                            }
+                            bg_color = color_map.get(key, "#f8f9fa")  # 기본 연한 회색
+                            st.markdown(
+                                f'<h4 style="background-color: {bg_color}; padding: 4px; border-radius: 3px; margin-bottom: 9px;">{title}</h4>',
+                                unsafe_allow_html=True,
+                            )
+
                         else:
-                            st.write(f"### - {title} 비교")
+                            st.markdown(
+                                f'<h4 style="padding: 4px; border-radius: 3px; margin-bottom: 9px;">‣ {title}</h4>',
+                                unsafe_allow_html=True,
+                            )
 
                         # 각 시트별 통계 표시
                         stats_cols = st.columns(len(st.session_state.selected_sheets))
@@ -814,9 +827,23 @@ def main():
                     if data:
                         # 전체 상담태그는 큰 제목, 중분류는 작은 제목
                         if key in ["리뷰_상담태그", "업셀_상담태그", "푸시_상담태그"]:
-                            st.write(f"#### {title}")  # 큰 제목
+                            # key별 색 매핑
+                            color_map = {
+                                "리뷰_상담태그": "#fff3cd",  # 연한 노랑
+                                "업셀_상담태그": "#d4edda",  # 연한 초록
+                                "푸시_상담태그": "#d1ecf1",  # 연한 하늘색
+                            }
+                            bg_color = color_map.get(key, "#f8f9fa")  # 기본 연한 회색
+                            st.markdown(
+                                f'<h4 style="background-color: {bg_color}; padding: 4px; border-radius: 3px;">{title}</h4>',
+                                unsafe_allow_html=True,
+                            )
+
                         else:
-                            st.write(f"#### - {title}")  # 작은 제목
+                            st.markdown(
+                                f'<h4 style="padding: 4px; border-radius: 3px;">‣ {title}</h4>',
+                                unsafe_allow_html=True,
+                            )
 
                         col1, col2 = st.columns([1, 2])
 
@@ -860,7 +887,9 @@ def main():
                                     if row.name in top3_idx:
                                         rank = list(top3_idx).index(row.name)
                                         opacity = opacities[rank]
-                                        return [f"background-color: rgba(255, 255, 0, {opacity})"] * len(row)
+                                        return [
+                                            f"background-color: rgba(255, 255, 0, {opacity})"
+                                        ] * len(row)
                                     else:
                                         # 반드시 컬럼 개수만큼 리스트 반환해야 함
                                         return [""] * len(row)
