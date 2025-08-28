@@ -139,13 +139,13 @@ def create_trend_chart(comparison_data, title, key):
 def highlight_top5_per_column(df):
     """상위 5개 값을 하이라이트합니다."""
     def high_top5(s):
-        top5 = s.nlargest(5).sort_values(ascending=False)
+        top5_values = s.drop_duplicates().nlargest(5).sort_values(ascending=False).tolist()
         result = []
         opacities = [0.9, 0.7, 0.5, 0.3, 0.1]
         
         for v in s:
-            if v in top5.values:
-                idx = top5.values.tolist().index(v)
+            if v in top5_values and v > 0:
+                idx = top5_values.index(v)
                 opacity = opacities[idx]
                 result.append(f"background-color: rgba(255, 255, 0, {opacity})")
             else:
