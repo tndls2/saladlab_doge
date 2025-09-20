@@ -1,0 +1,17 @@
+version: 1.0
+runtime: docker
+build:
+  commands:
+    build:
+      - echo "Using pre-built ECR image"
+run:
+  runtime-version: latest
+  command: streamlit run streamlit_app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
+  network:
+    port: 8501
+    env: PORT
+  env:
+    - name: PORT
+      value: "8501"
+    - name: SPREADSHEET_ID
+      value: "1DnOFmsfq_7vq4A1Hf9AVMEPnKP5aHzJsIJN6yeAkbkA"
