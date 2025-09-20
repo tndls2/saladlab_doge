@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  AWS_REGION: ap-northeast-2
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: google-sheets-analyzer
   APP_RUNNER_SERVICE: google-sheets-analyzer
 
@@ -37,8 +37,8 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # Docker 이미지 빌드 및 ECR에 푸시
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        # Docker 멀티플랫폼 이미지 빌드 및 ECR에 푸시
+        docker buildx build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
