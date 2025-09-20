@@ -26,4 +26,12 @@ ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 # App Runner 호환 시작 스크립트
-CMD ["sh", "-c", "streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false --server.allowRunOnSave=false --server.runOnSave=false"]
+CMD streamlit run streamlit_app.py \
+  --server.port=${PORT:-8501} \
+  --server.address=0.0.0.0 \
+  --server.headless=true \
+  --server.enableCORS=false \
+  --server.enableXsrfProtection=false \
+  --server.allowRunOnSave=false \
+  --server.runOnSave=false
+
